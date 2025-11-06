@@ -120,30 +120,37 @@ async function dailyShiftIfNeeded() {
   }
   if (todayISO === savedISO) return;
 
-  console.log("New day detected — shifting schedule…");
-  const { data: test, error: testError } = await supabase
+  console.log("🕓 New day detected — shifting schedule...");
+
+  // 1️⃣ Remove yesterday (day 0)
+  let { error: delErr } = await supabase
     .from("availability")
-    .select("*")
-    .limit(1);
-  console.log("Check availability table", { test, testError });
+    .delete()
+    .eq("day", 0);
+  if (delErr) console.error("Delete day 0 error:", delErr);
 
-  // delete yesterday
-  await supabase.from("availability").delete().eq("day", 0);
-
-  // shift everything else left
+  // 2️⃣ Shift all other days left
   for (let d = 1; d < 7; d++) {
     const { error } = await supabase
       .from("availability")
       .update({ day: d - 1 })
       .eq("day", d);
-    if (error) console.error("Shift error:", error);
+
+    if (error) console.error(`Shift day ${d} → ${d - 1} error:`, error);
+    else console.log(`Shifted all entries from day ${d} → ${d - 1}`);
   }
 
-  // clear the new empty last column
-  await supabase.from("availability").delete().eq("day", 6);
+  // 3️⃣ Clear the new rightmost column (day 6)
+  const { error: clearErr } = await supabase
+    .from("availability")
+    .delete()
+    .eq("day", 6);
+  if (clearErr) console.error("Clear day 6 error:", clearErr);
 
+  // 4️⃣ Save new start date and refresh calendar
   setStartDate(today);
-  console.log("Shift complete.");
+  console.log("✅ Shift complete. Reloading calendar...");
+  await loadAvailability();
 }
 
 /* --------------- UI BUILD ---------------- */
