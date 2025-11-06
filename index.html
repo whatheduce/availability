@@ -111,31 +111,35 @@ function getStartDate() {
 async function dailyShiftIfNeeded() {
   const today = new Date();
   const saved = getStartDate();
-
   const todayISO = today.toISOString().split("T")[0];
   const savedISO = saved ? saved.toISOString().split("T")[0] : null;
 
-  console.log("Daily shift check:", { todayISO, savedISO });
-
   if (!saved) {
-    console.log("No start date found — setting today as start.");
     setStartDate(today);
     return;
   }
+  if (todayISO === savedISO) return;
 
-  if (todayISO === savedISO) {
-    console.log("Same day — no shift needed.");
-    return;
-  }
+  console.log("New day detected — shifting schedule…");
+  const { data: test, error: testError } = await supabase
+    .from("availability")
+    .select("*")
+    .limit(1);
+  console.log("Check availability table", { test, testError });
 
-  console.log("New day detected — shifting schedule...");
-
+  // delete yesterday
   await supabase.from("availability").delete().eq("day", 0);
 
+  // shift everything else left
   for (let d = 1; d < 7; d++) {
-    await supabase.rpc("shift_day", { old_day: d, new_day: d - 1 });
+    const { error } = await supabase
+      .from("availability")
+      .update({ day: d - 1 })
+      .eq("day", d);
+    if (error) console.error("Shift error:", error);
   }
 
+  // clear the new empty last column
   await supabase.from("availability").delete().eq("day", 6);
 
   setStartDate(today);
