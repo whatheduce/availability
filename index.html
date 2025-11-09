@@ -1,354 +1,262 @@
-<<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Availability Calendar</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 900px;
-    margin: auto;
-    padding: 20px;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-top: 15px;
-  }
-  th, td {
-    border: 1px solid #ccc;
-    width: calc(100% / 7);
-    height: 50px;
-    text-align: center;
-    vertical-align: middle;
-  }
-  th {
-    background: #f7f7f7;
-    font-weight: bold;
-    position: relative;
-    height: 60px;
-  }
-  .day-header .dow {
-    font-size: 16px;
-    font-weight: bold;
-  }
-  .day-header .monthday {
-    font-size: 13px;
-    color: #555;
-    margin-top: -34px;
-    display: block;
-  }
-  .label-cell {
-    width: 90px;
-    background: #eee;
-    font-weight: bold;
-  }
-#calendar td:not(.label-cell),
-#calendar th:not(.label-cell) {
-  width: calc((100% - 90px) / 7);
-}
-  .clear-btn {
-    margin-top: 10px;
-    padding: 10px;
-    cursor: pointer;
-    font-size: 14px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Availability Calendar</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      background: #f6f6f6;
+    }
+    h1 { margin: 10px 0; }
+    #user-setup {
+      margin: 20px auto;
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      width: 280px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    #calendar {
+      margin: 20px auto;
+      overflow-x: auto;
+      display: none;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 0 auto;
+      min-width: 700px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      width: 100px;
+      height: 50px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    th {
+      background: #eaeaea;
+      position: sticky;
+      top: 0;
+    }
+    .day-header {
+      font-weight: bold;
+    }
+    .monthday {
+      font-size: 13px;
+      color: #555;
+      margin-top: -34px;
+      display: block;
+    }
+    .time-label {
+      font-weight: bold;
+      width: 120px;
+      background: #f0f0f0;
+    }
+    #legend {
+      margin-top: 20px;
+      text-align: left;
+      width: 280px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: none;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+    }
+    .color-box {
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      border: 1px solid #ccc;
+    }
+  </style>
 </head>
-
 <body>
+  <h1>Group Availability</h1>
 
-<h2>Shared Availability</h2>
+  <div id="user-setup">
+    <label>Name: <input type="text" id="userName" /></label><br><br>
+    <label>Colour: <input type="color" id="userColor" /></label><br><br>
+    <button id="saveBtn">Save</button>
+  </div>
 
-<div id="setup">
-  <label>Name:</label>
-  <input type="text" id="userName"><br><br>
+  <div id="calendar">
+    <table id="availabilityTable"></table>
+  </div>
 
-  <label>Color:</label>
-  <input type="color" id="userColor"><br><br>
-
-  <button id="saveBtn">Save</button>
-</div>
-
-<table id="calendar" style="display:none;"></table>
-
-<button class="clear-btn" id="clearBtn" style="display:none;">Clear My Availability</button>
-
-<div id="legend" style="margin-top:15px; font-size:16px;"></div>
+  <div id="legend">
+    <h3>Legend</h3>
+    <div id="legendList"></div>
+  </div>
 
 <script type="module">
-/* ---------------- SUPABASE INIT ---------------- */
-import { createClient } from "https://esm.sh/@supabase/supabase-js";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-const supabase = createClient(
-  "https://btuuowyvemesakjzkkzv.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0dXVvd3l2ZW1lc2Franpra3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0ODIwMDEsImV4cCI6MjA3NzA1ODAwMX0.QsDXg8AigiKUnpBUomprfbhx3RHzu-m12s2t4SKrhgM"
-);
+// 🔐 Replace these two values with your actual Supabase project credentials
+const SUPABASE_URL = "https://btuuowyvemesakjzkkzv.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0dXVvd3l2ZW1lc2Franpra3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0ODIwMDEsImV4cCI6MjA3NzA1ODAwMX0.QsDXg8AigiKUnpBUomprfbhx3RHzu-m12s2t4SKrhgM";
 
-async function shiftAvailabilityDates() {
-  console.log("Shifting all stored availability dates...");
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+window.supabase = supabase; // for debugging if needed
 
-  // Get all records
-  const { data: records, error } = await supabase
-    .from("availability")
-    .select("*");
+const table = document.getElementById("availabilityTable");
+const legendDiv = document.getElementById("legend");
+const legendList = document.getElementById("legendList");
 
-  if (error) {
-    console.error("Error loading availability for shifting:", error);
-    return;
-  }
+let user = JSON.parse(localStorage.getItem("user") || "null");
 
-  for (const record of records) {
-    const newDate = new Date(record.date);
-    newDate.setDate(newDate.getDate() - 1);
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  const name = document.getElementById("userName").value.trim();
+  const color = document.getElementById("userColor").value.trim();
+  if (!name) return alert("Please enter a name");
+  user = { name, color };
+  localStorage.setItem("user", JSON.stringify(user));
+  document.getElementById("user-setup").style.display = "none";
+  document.getElementById("calendar").style.display = "block";
+  legendDiv.style.display = "block";
+  await loadAvailability();
+});
 
-    // Delete anything too old (older than 7 days)
-    const diffDays = (new Date() - newDate) / (1000 * 60 * 60 * 24);
-    if (diffDays > 7) {
-      await supabase.from("availability").delete().eq("id", record.id);
-      continue;
-    }
-
-    // Update to the new shifted date
-    await supabase
-      .from("availability")
-      .update({ date: newDate.toISOString().split("T")[0] })
-      .eq("id", record.id);
-  }
-
-  console.log("Date shifting complete.");
+if (user) {
+  document.getElementById("user-setup").style.display = "none";
+  document.getElementById("calendar").style.display = "block";
+  legendDiv.style.display = "block";
 }
 
-/* ---------------- ELEMENTS ---------------- */
-const setupDiv = document.getElementById("setup");
-const calendarTable = document.getElementById("calendar");
-const userNameInput = document.getElementById("userName");
-const userColorInput = document.getElementById("userColor");
-const saveBtn = document.getElementById("saveBtn");
-const clearBtn = document.getElementById("clearBtn");
-
-let currentUser = JSON.parse(localStorage.getItem("user")) || null;
-const times = ["Morning", "Pre Lunch", "Post Lunch", "Evening"];
-
-/* -------------- DATE STORAGE HELPERS -------------- */
-function setStartDate(date) {
-  localStorage.setItem("calendarStartDate", date.toISOString().split("T")[0]);
-}
-
+// 🗓️ Helpers for dates
 function getStartDate() {
-  const saved = localStorage.getItem("calendarStartDate");
-  if (!saved) return null;
-  return new Date(saved);
+  const stored = localStorage.getItem("startDate");
+  return stored ? new Date(stored) : new Date();
+}
+function setStartDate(date) {
+  localStorage.setItem("startDate", date.toISOString());
 }
 
-/* --------------- DAILY SHIFT LOGIC ---------------- */
+// 🧩 Build the calendar grid
+function buildCalendar(startDate) {
+  table.innerHTML = "";
+  const headerRow = document.createElement("tr");
+  const emptyHeader = document.createElement("th");
+  headerRow.appendChild(emptyHeader);
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    days.push(d);
+    const th = document.createElement("th");
+    th.className = "day-header";
+    th.innerHTML = `${d.toLocaleDateString("en-US",{weekday:"short"})}<br><span class="monthday">${d.getDate()}/${d.getMonth()+1}</span>`;
+    headerRow.appendChild(th);
+  }
+  table.appendChild(headerRow);
+
+  const times = ["Morning","Pre-Lunch","Post-Lunch","Evening"];
+  times.forEach((time, r) => {
+    const row = document.createElement("tr");
+    const label = document.createElement("td");
+    label.className = "time-label";
+    label.textContent = time;
+    row.appendChild(label);
+    for (let d = 0; d < 7; d++) {
+      const cell = document.createElement("td");
+      cell.dataset.day = d;
+      cell.dataset.time = time;
+      cell.addEventListener("click", () => toggleAvailability(cell));
+      row.appendChild(cell);
+    }
+    table.appendChild(row);
+  });
+}
+
+// 🎨 Toggle availability
+async function toggleAvailability(cell) {
+  if (!user) return;
+  const day = parseInt(cell.dataset.day);
+  const time = cell.dataset.time;
+  const { data: existing } = await supabase
+    .from("availability")
+    .select("*")
+    .eq("day", day)
+    .eq("time", time)
+    .eq("name", user.name);
+
+  if (existing.length) {
+    await supabase.from("availability").delete().eq("id", existing[0].id);
+  } else {
+    await supabase.from("availability").insert([{ day, time, name: user.name, color: user.color }]);
+  }
+  await loadAvailability();
+}
+
+// 🧠 Load and render availability
+async function loadAvailability() {
+  const { data } = await supabase.from("availability").select("*");
+  const cells = table.querySelectorAll("td[data-day]");
+  cells.forEach(cell => cell.style.background = "");
+  if (!data) return;
+
+  const users = {};
+  data.forEach(r => { users[r.name] = r.color; });
+
+  legendList.innerHTML = "";
+  Object.entries(users).forEach(([name, color]) => {
+    const div = document.createElement("div");
+    div.className = "legend-item";
+    div.innerHTML = `<div class="color-box" style="background:${color}"></div>${name}`;
+    legendList.appendChild(div);
+  });
+
+  for (const record of data) {
+    const selector = `td[data-day="${record.day}"][data-time="${record.time}"]`;
+    const cell = table.querySelector(selector);
+    if (!cell) continue;
+    const current = cell.dataset.colors ? cell.dataset.colors.split(",") : [];
+    if (!current.includes(record.color)) current.push(record.color);
+    cell.dataset.colors = current.join(",");
+    cell.style.background = current.length > 1
+      ? `linear-gradient(to right, ${current.join(",")})`
+      : current[0];
+  }
+}
+
+// 🕒 Daily shift check
+async function shiftAvailabilityDates() {
+  console.log("Shifting stored availability day indexes...");
+  await supabase.from("availability").delete().eq("day", 0);
+  for (let d = 1; d < 7; d++) {
+    await supabase.from("availability").update({ day: d - 1 }).eq("day", d);
+  }
+  await supabase.from("availability").delete().eq("day", 6);
+  console.log("✅ Shift complete for new day");
+}
+
 async function dailyShiftIfNeeded() {
   const today = new Date();
   const saved = getStartDate();
   const todayISO = today.toISOString().split("T")[0];
   const savedISO = saved ? saved.toISOString().split("T")[0] : null;
 
-  if (!saved) {
-    setStartDate(today);
-    return;
-  }
+  if (!saved) { setStartDate(today); return; }
   if (todayISO === savedISO) return;
 
-  console.log("🕓 New day detected — shifting schedule...");
+  console.log("🌅 New day detected – shifting schedule...");
   await shiftAvailabilityDates();
   setStartDate(today);
-}
-
-/* --------------- UI BUILD ---------------- */
-function buildCalendar() {
-  const today = new Date();
-  calendarTable.innerHTML = "";
-
-  let headerRow = document.createElement("tr");
-  headerRow.appendChild(document.createElement("th")); 
-
-  for (let i = 0; i < 7; i++) {
-    let d = new Date(today);
-    d.setDate(today.getDate() + i);
-    let th = document.createElement("th");
-    th.classList.add("day-header");
-
-    let dow = d.toLocaleString("en-AU", { weekday: "short" });
-    let md = `${d.getDate()}/${d.getMonth()+1}`;
-
-    th.innerHTML = `<span class="dow">${dow}</span><span class="monthday">${md}</span>`;
-    headerRow.appendChild(th);
-  }
-  calendarTable.appendChild(headerRow);
-
-  times.forEach((slot, r) => {
-    let row = document.createElement("tr");
-    let label = document.createElement("td");
-    label.textContent = slot;
-    label.classList.add("label-cell");
-    row.appendChild(label);
-
-    for (let c = 0; c < 7; c++) {
-      let cell = document.createElement("td");
-      cell.dataset.day = c;
-      cell.dataset.time = slot;
-      cell.addEventListener("click", () => toggleCell(c, slot));
-      row.appendChild(cell);
-    }
-    calendarTable.appendChild(row);
-  });
-}
-
-/* --------------- LOAD + DISPLAY COLORS ---------------- */
-async function loadAvailability() {
-  const { data } = await supabase.from("availability").select("*");
-
-  // Clear first
-  document.querySelectorAll("#calendar td[data-day]").forEach(cell => {
-    cell.style.background = "white";
-  });
-
-  // Group by cell
-  const grouped = {};
-  data.forEach(r => {
-    const key = `${r.day}_${r.time}`;
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(r.color);
-  });
-
-  // Paint cells
-  Object.entries(grouped).forEach(([key, colors]) => {
-    const [day, time] = key.split("_");
-    const cell = document.querySelector(`#calendar td[data-day="${day}"][data-time="${time}"]`);
-
-    if (!cell) return;
-
-    // 4 users = gold cell
-    if (colors.length >= 4) {
-      cell.style.background = "gold";
-      return;
-    }
-
-    // 1 user = solid color
-    if (colors.length === 1) {
-      cell.style.background = colors[0];
-      return;
-    }
-
-    // 2–3 users = split stripes
-    const gradient = colors.map((c, i) => {
-      const start = (i * 100) / colors.length;
-      const end = ((i + 1) * 100) / colors.length;
-      return `${c} ${start}% ${end}%`;
-    }).join(", ");
-
-    cell.style.background = `linear-gradient(to right, ${gradient})`;
-  });
-}
-
-/* --------------- LEGEND ---------------- */
-async function updateLegend() {
-  const { data } = await supabase.from("availability").select("name,color");
-  const users = {};
-  data.forEach(r => users[r.name] = r.color);
-
-  let html = "<b>Users:</b><br><br>";
-  Object.entries(users).forEach(([name, color]) => {
-    html += `
-      <span style="display:inline-flex;align-items:center;margin-right:10px;margin-bottom:5px;">
-        <span style="width:18px;height:18px;background:${color};border:1px solid #333;display:inline-block;margin-right:6px;"></span>${name}
-      </span>
-    `;
-  });
-
-  document.getElementById("legend").innerHTML = html;
-}
-
-/* --------------- CLICK CELL ---------------- */
-async function toggleCell(day, time) {
-  const { data } = await supabase
-    .from("availability")
-    .select("*")
-    .eq("day", day)
-    .eq("time", time)
-    .eq("name", currentUser.name);
-
-  if (data.length) {
-    await supabase.from("availability")
-      .delete()
-      .eq("day", day).eq("time", time).eq("name", currentUser.name);
-  } else {
-    await supabase.from("availability")
-      .insert({ day, time, name: currentUser.name, color: currentUser.color });
-  }
-
   await loadAvailability();
-  updateLegend();
 }
 
-/* --------------- SETUP USER ---------------- */
-saveBtn.onclick = async () => {
-  currentUser = {
-    name: userNameInput.value.trim(),
-    color: userColorInput.value
-  };
-
-  localStorage.setItem("user", JSON.stringify(currentUser));
-  showCalendar();
-};
-
-async function showCalendar() {
-  setupDiv.style.display = "none";
-  calendarTable.style.display = "table";
-  clearBtn.style.display = "inline-block";
-
-  await dailyShiftIfNeeded();
-  buildCalendar();
-  await loadAvailability();
-  updateLegend();
-}
-
-/* --------------- CLEAR USER'S SLOTS ---------------- */
-clearBtn.onclick = async () => {
-  if (confirm("Clear ALL your availability?")) {
-    await supabase.from("availability").delete().eq("name", currentUser.name);
-    await loadAvailability();
-    updateLegend();
-  }
-};
-
-/* --------------- INIT ---------------- */
-async function initApp() {
-  console.log("Initializing...");
-
-  // Always attempt shift BEFORE deciding UI
-  await dailyShiftIfNeeded();
-
-  if (currentUser) {
-    console.log("User found, loading calendar...");
-    setupDiv.style.display = "none";
-    await showCalendar();
-  } else {
-    console.log("No user found, showing setup...");
-    setupDiv.style.display = "block";
-    calendarTable.style.display = "none";
-    clearBtn.style.display = "none";
-  }
-}
-
-initApp();
-
-/* --------------- REALTIME ---------------- */
-supabase.channel("avail")
-  .on("postgres_changes", { event: "*", table: "availability" }, async () => {
-    await loadAvailability();
-    updateLegend();
-  })
-  .subscribe();
-
-  window.supabase = supabase;
-  window.loadAvailability = loadAvailability;
-
+// 🚀 Initialize
+buildCalendar(getStartDate());
+dailyShiftIfNeeded().then(loadAvailability);
 </script>
 </body>
-</html>>
+</html>
