@@ -235,7 +235,7 @@ async function shiftAvailabilityDates() {
   // 1️⃣ Delete anything in the first column (yesterday)
   await supabase.from("availability").delete().eq("day", 0);
 
-  // 2️⃣ Fetch the remaining rows so we can update them manually
+  // 2️⃣ Fetch all remaining rows ordered by day
   const { data: rows, error } = await supabase
     .from("availability")
     .select("*")
@@ -246,26 +246,18 @@ async function shiftAvailabilityDates() {
     return;
   }
 
-  // 3️⃣ Build a list of update promises
-  const updates = [];
+  // 3️⃣ Sequentially update each row’s day value
   for (const r of rows) {
     if (r.day >= 1 && r.day <= 6) {
-      updates.push(
-        supabase
-          .from("availability")
-          .update({ day: r.day - 1 })
-          .eq("id", r.id)
-      );
+      const { error: updateError } = await supabase
+        .from("availability")
+        .update({ day: r.day - 1 })
+        .eq("id", r.id);
+      if (updateError) console.error("Shift update error:", updateError);
     }
   }
 
-  // 4️⃣ Execute all updates sequentially (to avoid overlaps)
-  for (const u of updates) {
-    const { error } = await u;
-    if (error) console.error("Shift update error:", error);
-  }
-
-  // 5️⃣ Clear the new rightmost column (day 6)
+  // 4️⃣ Clear the new rightmost column (day 6)
   await supabase.from("availability").delete().eq("day", 6);
 
   console.log("✅ Shift complete for new day");
