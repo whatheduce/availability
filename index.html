@@ -252,15 +252,19 @@ async function loadAvailability() {
       dotContainer.style.alignItems = "center";
       dotContainer.style.height = "100%";
       dotContainer.style.gap = "3px";
-      colors.forEach(color => {
+      data.forEach(entry => {
+        const key = '${entry.day}-${entry.time}';
+        if key === '${day}-${time}') {
         const dot = document.createElement("div");
         dot.style.width = "10px";
         dot.style.height = "10px";
         dot.style.borderRadius = "50%";
-        dot.style.background = color;
+        dot.style.background = entry.color;
         dot.style.border = "1px solid rgba(0,0,0,0.2)";
+        dot.title = entry.name;
         dotContainer.appendChild(dot);
-      });
+      }
+      ;
       cell.appendChild(dotContainer);
     }
   });
