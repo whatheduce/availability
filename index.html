@@ -254,7 +254,7 @@ async function loadAvailability() {
       dotContainer.style.gap = "3px";
       data.forEach(entry => {
         const key = '${entry.day}-${entry.time}';
-        if key === '${day}-${time}') {
+        if (key === '${day}-${time}') {
         const dot = document.createElement("div");
         dot.style.width = "10px";
         dot.style.height = "10px";
@@ -264,7 +264,7 @@ async function loadAvailability() {
         dot.title = entry.name;
         dotContainer.appendChild(dot);
       }
-      ;
+    });
       cell.appendChild(dotContainer);
     }
   });
