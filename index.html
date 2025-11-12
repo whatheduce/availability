@@ -219,14 +219,19 @@ async function loadAvailability() {
     const selector = `td[data-day="${record.day}"][data-time="${record.time}"]`;
     const cell = table.querySelector(selector);
     if (!cell) continue;
+    cell.removeAttribute("data-colors");
     const current = cell.dataset.colors ? cell.dataset.colors.split(",") : [];
     if (!current.includes(record.color)) current.push(record.color);
     cell.dataset.colors = current.join(",");
-    cell.style.background = current.length > 1
-      ? `linear-gradient(to right, ${current.join(",")})`
-      : current[0];
-  }
-}
+   if (current.length === 4) {
+    cell.style.background = "gold";
+   } else if (current.length > 1) {
+    cell.style.background = 'linear-gradient(to right, ${current.join(",")})';
+   } else {
+    cell.style.background = current[0];
+   }
+   }
+   }
 
 // 🕒 Daily shift check
 async function shiftAvailabilityDates() {
