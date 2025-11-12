@@ -77,6 +77,15 @@
       margin-right: 8px;
       border: 1px solid #ccc;
     }
+
+    td {
+      transition: box-shadow 0.3s ease, background 0.3s ease;
+    }
+
+    td:hover {
+      outline: 1px solid rgba(255, 215, 0, 0.3);
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -223,13 +232,37 @@ async function loadAvailability() {
     const current = cell.dataset.colors ? cell.dataset.colors.split(",") : [];
     if (!current.includes(record.color)) current.push(record.color);
     cell.dataset.colors = current.join(",");
-   if (current.length === 4) {
-    cell.style.background = "gold";
-   } else if (current.length > 1) {
-    cell.style.background = 'linear-gradient(to right, ${current.join(",")})';
-   } else {
-    cell.style.background = current[0];
-   }
+// clear any previous dots or background
+cell.innerHTML = "";
+
+// if all 4 users selected this cell — gold with glow
+if (current.length === 4) {
+  cell.style.background = "gold";
+  cell.style.boxShadow = "0 0 10px 3px gold";
+} else {
+  cell.style.background = ""; // reset any previous fills
+  cell.style.boxShadow = "none";
+
+  // add small coloured dots for each user
+  const dotContainer = document.createElement("div");
+  dotContainer.style.display = "flex";
+  dotContainer.style.justifyContent = "center";
+  dotContainer.style.alignItems = "center";
+  dotContainer.style.height = "100%";
+  dotContainer.style.gap = "3px";
+
+  current.forEach(color => {
+    const dot = document.createElement("div");
+    dot.style.width = "10px";
+    dot.style.height = "10px";
+    dot.style.borderRadius = "50%";
+    dot.style.background = color;
+    dot.style.border = "1px solid rgba(0,0,0,0.2)";
+    dotContainer.appendChild(dot);
+  });
+
+  cell.appendChild(dotContainer);
+}
    }
    }
 
