@@ -227,44 +227,46 @@ async function loadAvailability() {
     legendList.appendChild(div);
   });
 
-  // Group colours per cell
+  // Group entries by cell (day+time)
   const cellMap = {};
   data.forEach(entry => {
     const key = `${entry.day}-${entry.time}`;
     if (!cellMap[key]) cellMap[key] = [];
-    cellMap[key].push(entry.color);
+    cellMap[key].push(entry);
   });
 
-  // Render each cell once
+  // Render each cell
   document.querySelectorAll("td[data-day]").forEach(cell => {
     const day = cell.getAttribute("data-day");
     const time = cell.getAttribute("data-time");
     const key = `${day}-${time}`;
-    const colors = cellMap[key] || [];
+    const entries = cellMap[key] || [];
 
-    if (colors.length === 4) {
+    if (entries.length === 4) {
       cell.style.background = "gold";
       cell.style.boxShadow = "0 0 10px 3px gold";
-    } else if (colors.length > 0) {
+      return;
+    }
+
+    if (entries.length > 0) {
       const dotContainer = document.createElement("div");
       dotContainer.style.display = "flex";
       dotContainer.style.justifyContent = "center";
       dotContainer.style.alignItems = "center";
       dotContainer.style.height = "100%";
       dotContainer.style.gap = "3px";
-      data.forEach(entry => {
-        const key = '${entry.day}-${entry.time}';
-        if (key === '${day}-${time}') {
+
+      entries.forEach(entry => {
         const dot = document.createElement("div");
         dot.style.width = "10px";
         dot.style.height = "10px";
         dot.style.borderRadius = "50%";
         dot.style.background = entry.color;
         dot.style.border = "1px solid rgba(0,0,0,0.2)";
-        dot.title = entry.name;
+        dot.title = entry.name; // 👈 shows user’s name on hover
         dotContainer.appendChild(dot);
-      }
-    });
+      });
+
       cell.appendChild(dotContainer);
     }
   });
