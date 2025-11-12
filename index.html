@@ -12,6 +12,7 @@
       background: #f6f6f6;
     }
     h1 { margin: 10px 0; }
+
     #user-setup {
       margin: 20px auto;
       background: #fff;
@@ -42,9 +43,7 @@
       position: sticky;
       top: 0;
     }
-    .day-header {
-      font-weight: bold;
-    }
+    .day-header { font-weight: bold; }
     .monthday {
       font-size: 13px;
       color: #555;
@@ -109,12 +108,10 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-// 🔐 Replace these two values with your actual Supabase project credentials
+// 🔐 Supabase credentials
 const SUPABASE_URL = "https://btuuowyvemesakjzkkzv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0dXVvd3l2ZW1lc2Franpra3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0ODIwMDEsImV4cCI6MjA3NzA1ODAwMX0.QsDXg8AigiKUnpBUomprfbhx3RHzu-m12s2t4SKrhgM";
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-window.supabase = supabase; // for debugging if needed
 
 const table = document.getElementById("availabilityTable");
 const legendDiv = document.getElementById("legend");
@@ -140,7 +137,7 @@ if (user) {
   legendDiv.style.display = "block";
 }
 
-// 🗓️ Helpers for dates
+// 🗓️ Date helpers
 function getStartDate() {
   const stored = localStorage.getItem("startDate");
   return stored ? new Date(stored) : new Date();
@@ -149,12 +146,11 @@ function setStartDate(date) {
   localStorage.setItem("startDate", date.toISOString());
 }
 
-// 🧩 Build the calendar grid
+// 🧩 Build calendar grid
 function buildCalendar(startDate) {
   table.innerHTML = "";
   const headerRow = document.createElement("tr");
-  const emptyHeader = document.createElement("th");
-  headerRow.appendChild(emptyHeader);
+  headerRow.appendChild(document.createElement("th"));
 
   const days = [];
   for (let i = 0; i < 7; i++) {
@@ -169,7 +165,7 @@ function buildCalendar(startDate) {
   table.appendChild(headerRow);
 
   const times = ["Morning","Pre-Lunch","Post-Lunch","Evening"];
-  times.forEach((time, r) => {
+  times.forEach(time => {
     const row = document.createElement("tr");
     const label = document.createElement("td");
     label.className = "time-label";
@@ -186,11 +182,12 @@ function buildCalendar(startDate) {
   });
 }
 
-// 🎨 Toggle availability
+// 🎨 Toggle availability (add or remove user's colour)
 async function toggleAvailability(cell) {
   if (!user) return;
   const day = parseInt(cell.dataset.day);
   const time = cell.dataset.time;
+
   const { data: existing } = await supabase
     .from("availability")
     .select("*")
@@ -199,23 +196,29 @@ async function toggleAvailability(cell) {
     .eq("name", user.name);
 
   if (existing.length) {
+    // remove user's colour (even if gold cell)
     await supabase.from("availability").delete().eq("id", existing[0].id);
   } else {
     await supabase.from("availability").insert([{ day, time, name: user.name, color: user.color }]);
   }
+
   await loadAvailability();
 }
 
-// 🧠 Load and render availability
+// 🧠 Load and render all availability
 async function loadAvailability() {
   const { data } = await supabase.from("availability").select("*");
   const cells = table.querySelectorAll("td[data-day]");
-  cells.forEach(cell => cell.style.background = "");
+  cells.forEach(cell => {
+    cell.style.background = "";
+    cell.style.boxShadow = "none";
+    cell.innerHTML = "";
+  });
   if (!data) return;
 
+  // Build legend
   const users = {};
   data.forEach(r => { users[r.name] = r.color; });
-
   legendList.innerHTML = "";
   Object.entries(users).forEach(([name, color]) => {
     const div = document.createElement("div");
@@ -224,93 +227,64 @@ async function loadAvailability() {
     legendList.appendChild(div);
   });
 
-  for (const record of data) {
-    const selector = `td[data-day="${record.day}"][data-time="${record.time}"]`;
-    const cell = table.querySelector(selector);
-    if (!cell) continue;
-    cell.removeAttribute("data-colors");
-    const current = cell.dataset.colors ? cell.dataset.colors.split(",") : [];
-    if (!current.includes(record.color)) current.push(record.color);
-    cell.dataset.colors = current.join(",");
-// clear any previous dots or background
-cell.innerHTML = "";
-
-// if all 4 users selected this cell — gold with glow
-if (current.length === 4) {
-  cell.style.background = "gold";
-  cell.style.boxShadow = "0 0 10px 3px gold";
-} else {
-  cell.style.background = ""; // reset any previous fills
-  cell.style.boxShadow = "none";
-
-  // add small coloured dots for each user
-  const dotContainer = document.createElement("div");
-  dotContainer.style.display = "flex";
-  dotContainer.style.justifyContent = "center";
-  dotContainer.style.alignItems = "center";
-  dotContainer.style.height = "100%";
-  dotContainer.style.gap = "3px";
-
-  current.forEach(color => {
-    const dot = document.createElement("div");
-    dot.style.width = "10px";
-    dot.style.height = "10px";
-    dot.style.borderRadius = "50%";
-    dot.style.background = color;
-    dot.style.border = "1px solid rgba(0,0,0,0.2)";
-    dotContainer.appendChild(dot);
+  // Group colours per cell
+  const cellMap = {};
+  data.forEach(entry => {
+    const key = `${entry.day}-${entry.time}`;
+    if (!cellMap[key]) cellMap[key] = [];
+    cellMap[key].push(entry.color);
   });
 
-  cell.appendChild(dotContainer);
-}
-   }
-   }
+  // Render each cell once
+  document.querySelectorAll("td[data-day]").forEach(cell => {
+    const day = cell.getAttribute("data-day");
+    const time = cell.getAttribute("data-time");
+    const key = `${day}-${time}`;
+    const colors = cellMap[key] || [];
 
-// 🕒 Daily shift check
-async function shiftAvailabilityDates() {
-  console.log("Shifting stored availability day indexes...");
-
-  // 1️⃣ Delete anything in the first column (yesterday)
-  await supabase.from("availability").delete().eq("day", 0);
-
-  // 2️⃣ Fetch all remaining rows ordered by day
-  const { data: rows, error } = await supabase
-    .from("availability")
-    .select("*")
-    .order("day", { ascending: true });
-
-  if (error) {
-    console.error("Error fetching rows for shift:", error);
-    return;
-  }
-
-  // 3️⃣ Sequentially update each row’s day value
-  for (const r of rows) {
-    if (r.day >= 1 && r.day <= 6) {
-      const { error: updateError } = await supabase
-        .from("availability")
-        .update({ day: r.day - 1 })
-        .eq("id", r.id);
-      if (updateError) console.error("Shift update error:", updateError);
+    if (colors.length === 4) {
+      cell.style.background = "gold";
+      cell.style.boxShadow = "0 0 10px 3px gold";
+    } else if (colors.length > 0) {
+      const dotContainer = document.createElement("div");
+      dotContainer.style.display = "flex";
+      dotContainer.style.justifyContent = "center";
+      dotContainer.style.alignItems = "center";
+      dotContainer.style.height = "100%";
+      dotContainer.style.gap = "3px";
+      colors.forEach(color => {
+        const dot = document.createElement("div");
+        dot.style.width = "10px";
+        dot.style.height = "10px";
+        dot.style.borderRadius = "50%";
+        dot.style.background = color;
+        dot.style.border = "1px solid rgba(0,0,0,0.2)";
+        dotContainer.appendChild(dot);
+      });
+      cell.appendChild(dotContainer);
     }
-  }
-
-  // 4️⃣ Clear the new rightmost column (day 6)
-  await supabase.from("availability").delete().eq("day", 6);
-
-  console.log("✅ Shift complete for new day");
+  });
 }
 
+// 🕒 Shift logic (still used by cron/SQL)
+async function shiftAvailabilityDates() {
+  await supabase.from("availability").delete().eq("day", 0);
+  const { data: rows } = await supabase.from("availability").select("*").order("day");
+  for (const r of rows) {
+    if (r.day >= 1 && r.day <= 6)
+      await supabase.from("availability").update({ day: r.day - 1 }).eq("id", r.id);
+  }
+  await supabase.from("availability").delete().eq("day", 6);
+}
+
+// 🕘 Daily check
 async function dailyShiftIfNeeded() {
   const today = new Date();
   const saved = getStartDate();
   const todayISO = today.toISOString().split("T")[0];
   const savedISO = saved ? saved.toISOString().split("T")[0] : null;
-
   if (!saved) { setStartDate(today); return; }
   if (todayISO === savedISO) return;
-
-  console.log("🌅 New day detected – shifting schedule...");
   await shiftAvailabilityDates();
   setStartDate(today);
   await loadAvailability();
