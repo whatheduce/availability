@@ -153,7 +153,7 @@ function buildCalendar(startDate) {
   headerRow.appendChild(document.createElement("th"));
 
   const days = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 30; i++) {
     const d = new Date(startDate);
     d.setDate(d.getDate() + i);
     days.push(d);
