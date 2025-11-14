@@ -171,7 +171,7 @@ function buildCalendar(startDate) {
     label.className = "time-label";
     label.textContent = time;
     row.appendChild(label);
-    for (let d = 0; d < 7; d++) {
+    for (let d = 0; d < 30; d++) {
       const cell = document.createElement("td");
       cell.dataset.day = d;
       cell.dataset.time = time;
