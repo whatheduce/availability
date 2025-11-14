@@ -80,6 +80,7 @@
     .footer-text {
       text-align: left;
       margin-left: 20px;
+      margin-top: 8px;
     }
 
     td {
@@ -175,7 +176,7 @@ function buildCalendar(startDate) {
   }
   table.appendChild(headerRow);
 
-  const times = ["Morning","Pre-Lunch","Post-Lunch","Evening"];
+  const times = ["Morning","Pre-Lunch","Post-Lunch", "Dinner", "Late-Evening"];
   times.forEach(time => {
     const row = document.createElement("tr");
     const label = document.createElement("td");
