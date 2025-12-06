@@ -13,14 +13,27 @@
     }
     h1 { margin: 10px 0; }
 
-    #user-setup {
+    /* user select (replaces old user-setup) */
+    #user-select {
+      display: none;
       margin: 20px auto;
-      background: #fff;
-      padding: 10px;
-      border-radius: 6px;
-      width: 280px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
+    #user-buttons {
+      display:flex;
+      justify-content:center;
+      gap:20px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+    .user-btn {
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
     #calendar {
       margin: 20px auto;
       overflow-x: auto;
@@ -30,6 +43,7 @@
       border-collapse: collapse;
       margin: 0 auto;
       min-width: 700px;
+      table-layout: fixed;
     }
     th, td {
       border: 1px solid #ccc;
@@ -39,6 +53,8 @@
       height: 50px;
       text-align: center;
       vertical-align: middle;
+      box-sizing: border-box;
+      overflow: hidden;
     }
     th {
       background: #eaeaea;
@@ -87,32 +103,58 @@
 
     td {
       transition: box-shadow 0.3s ease, background 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     td:hover {
       outline: 1px solid rgba(255, 215, 0, 0.3);
       cursor: pointer;
     }
+
+    /* dot container styles */
+    .dot-container {
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:6px;
+      width:100%;
+    }
+    .dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.2);
+      flex: 0 0 auto;
+    }
+
+    /* gold glow tweak */
+    .gold-cell {
+      background: gold !important;
+      box-shadow: 0 0 10px 3px gold !important;
+    }
   </style>
 </head>
 <body>
   <h1>Group Availability</h1>
 
-  <div id="user-setup">
-    <label>Name: <input type="text" id="userName" /></label><br><br>
-    <label>Colour: <input type="color" id="userColor" /></label><br><br>
-    <button id="saveBtn">Save</button>
+  <!-- user selection (tap-to-enter) -->
+  <div id="user-select">
+    <h2>Select your name</h2>
+    <div id="user-buttons"></div>
   </div>
 
   <div id="calendar">
     <table id="availabilityTable"></table>
-      <div class="footer-text">
-    - Morning denotes availability starting quite early, assumedly before 10am. <br>
-    - Pre-Lunch means you'd be around for lunch, probably starting something like 11-12am. <br>
-    - Post-Lunch you're looking at something around 1-3pm, up until around dinner time. <br>
-    - Dinner I'd say falls around the 5pm+ region, ending around 9pm <br>
-    - Evening we're talking about your around after our earlier 9pm finishes until late, like 11+ or so.
-      </div>
+
+    <div class="footer-text">
+      - Morning denotes availability starting quite early, assumedly before 10am. <br>
+      - Pre-Lunch means you'd be around for lunch, probably starting something like 11-12am. <br>
+      - Post-Lunch you're looking at something around 1-3pm, up until around dinner time. <br>
+      - Dinner I'd say falls around the 5pm+ region, ending around 9pm <br>
+      - Late-Evening we're talking about you around after our earlier 9pm finishes until late, like 11+ or so.
+    </div>
   </div>
 
   <div id="legend">
@@ -123,36 +165,28 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-// 🔐 Supabase credentials
+// Supabase credentials (preserved from uploaded file)
 const SUPABASE_URL = "https://btuuowyvemesakjzkkzv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0dXVvd3l2ZW1lc2Franpra3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0ODIwMDEsImV4cCI6MjA3NzA1ODAwMX0.QsDXg8AigiKUnpBUomprfbhx3RHzu-m12s2t4SKrhgM";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// DOM refs
 const table = document.getElementById("availabilityTable");
 const legendDiv = document.getElementById("legend");
 const legendList = document.getElementById("legendList");
 
+// persistent user (keeps same shape as previous code)
 let user = JSON.parse(localStorage.getItem("user") || "null");
 
-document.getElementById("saveBtn").addEventListener("click", async () => {
-  const name = document.getElementById("userName").value.trim();
-  const color = document.getElementById("userColor").value.trim();
-  if (!name) return alert("Please enter a name");
-  user = { name, color };
-  localStorage.setItem("user", JSON.stringify(user));
-  document.getElementById("user-setup").style.display = "none";
-  document.getElementById("calendar").style.display = "block";
-  legendDiv.style.display = "block";
-  await loadAvailability();
-});
+// === PREDEFINED USERS (the 4 boxes shown at startup) ===
+const predefinedUsers = [
+  { name: "Duce",   color: "#e74c3c" },
+  { name: "Mike",  color: "#3498db" },
+  { name: "Gway", color: "#2ecc71" },
+  { name: "Bone",   color: "#9b59b6" }
+];
 
-if (user) {
-  document.getElementById("user-setup").style.display = "none";
-  document.getElementById("calendar").style.display = "block";
-  legendDiv.style.display = "block";
-}
-
-// 🗓️ Date helpers
+// --- Utility: startDate storage (keeps previous behaviour) ---
 function getStartDate() {
   const stored = localStorage.getItem("startDate");
   return stored ? new Date(stored) : new Date();
@@ -161,17 +195,15 @@ function setStartDate(date) {
   localStorage.setItem("startDate", date.toISOString());
 }
 
-// 🧩 Build calendar grid
+// === Build calendar grid (30 days, 5 rows) ===
 function buildCalendar(startDate) {
   table.innerHTML = "";
   const headerRow = document.createElement("tr");
   headerRow.appendChild(document.createElement("th"));
 
-  const days = [];
   for (let i = 0; i < 30; i++) {
     const d = new Date(startDate);
     d.setDate(d.getDate() + i);
-    days.push(d);
     const th = document.createElement("th");
     th.className = "day-header";
     th.innerHTML = `${d.toLocaleDateString("en-US",{weekday:"short"})}<br><span class="monthday">${d.getDate()}/${d.getMonth()+1}</span>`;
@@ -179,7 +211,7 @@ function buildCalendar(startDate) {
   }
   table.appendChild(headerRow);
 
-  const times = ["Morning","Pre-Lunch","Post-Lunch", "Dinner", "Late-Evening"];
+  const times = ["Morning","Pre-Lunch","Post-Lunch","Dinner","Late-Evening"];
   times.forEach(time => {
     const row = document.createElement("tr");
     const label = document.createElement("td");
@@ -197,12 +229,13 @@ function buildCalendar(startDate) {
   });
 }
 
-// 🎨 Toggle availability (add or remove user's colour)
+// === Toggle availability (create/delete single user's row) ===
 async function toggleAvailability(cell) {
   if (!user) return;
-  const day = parseInt(cell.dataset.day);
+  const day = parseInt(cell.dataset.day, 10);
   const time = cell.dataset.time;
 
+  // Fetch existing row for this user
   const { data: existing } = await supabase
     .from("availability")
     .select("*")
@@ -210,23 +243,25 @@ async function toggleAvailability(cell) {
     .eq("time", time)
     .eq("name", user.name);
 
-  if (existing.length) {
-    // remove user's colour (even if gold cell)
+  if (existing && existing.length) {
+    // delete that row
     await supabase.from("availability").delete().eq("id", existing[0].id);
   } else {
+    // insert one row for this user
     await supabase.from("availability").insert([{ day, time, name: user.name, color: user.color }]);
   }
 
   await loadAvailability();
 }
 
-// 🧠 Load and render all availability
+// === Load and render availability (dots + gold) ===
 async function loadAvailability() {
   const { data } = await supabase.from("availability").select("*");
   const cells = table.querySelectorAll("td[data-day]");
   cells.forEach(cell => {
     cell.style.background = "";
     cell.style.boxShadow = "none";
+    cell.classList.remove("gold-cell");
     cell.innerHTML = "";
   });
   if (!data) return;
@@ -242,7 +277,7 @@ async function loadAvailability() {
     legendList.appendChild(div);
   });
 
-  // Group entries by cell (day+time)
+  // Group entries by cell key
   const cellMap = {};
   data.forEach(entry => {
     const key = `${entry.day}-${entry.time}`;
@@ -250,7 +285,7 @@ async function loadAvailability() {
     cellMap[key].push(entry);
   });
 
-  // Render each cell
+  // Render each cell once from grouped data
   document.querySelectorAll("td[data-day]").forEach(cell => {
     const day = cell.getAttribute("data-day");
     const time = cell.getAttribute("data-time");
@@ -258,27 +293,19 @@ async function loadAvailability() {
     const entries = cellMap[key] || [];
 
     if (entries.length === 4) {
-      cell.style.background = "gold";
-      cell.style.boxShadow = "0 0 10px 3px gold";
+      cell.classList.add("gold-cell");
       return;
     }
 
     if (entries.length > 0) {
       const dotContainer = document.createElement("div");
-      dotContainer.style.display = "flex";
-      dotContainer.style.justifyContent = "center";
-      dotContainer.style.alignItems = "center";
-      dotContainer.style.height = "100%";
-      dotContainer.style.gap = "3px";
+      dotContainer.className = "dot-container";
 
       entries.forEach(entry => {
         const dot = document.createElement("div");
-        dot.style.width = "16px";
-        dot.style.height = "16px";
-        dot.style.borderRadius = "50%";
+        dot.className = "dot";
         dot.style.background = entry.color;
-        dot.style.border = "1px solid rgba(0,0,0,0.2)";
-        dot.title = entry.name; // 👈 shows user’s name on hover
+        dot.title = entry.name; // tooltip: shows user's name
         dotContainer.appendChild(dot);
       });
 
@@ -287,18 +314,39 @@ async function loadAvailability() {
   });
 }
 
-// 🕒 Shift logic (still used by cron/SQL)
+// === Shift logic for 30-day window (keeps front-end-safe backup) ===
 async function shiftAvailabilityDates() {
+  console.log("Shifting stored availability day indexes (30-day)...");
+  // delete oldest
   await supabase.from("availability").delete().eq("day", 0);
-  const { data: rows } = await supabase.from("availability").select("*").order("day");
-  for (const r of rows) {
-    if (r.day >= 1 && r.day <= 6)
-      await supabase.from("availability").update({ day: r.day - 1 }).eq("id", r.id);
+
+  // fetch remaining and update by id
+  const { data: rows, error } = await supabase
+    .from("availability")
+    .select("*")
+    .order("day", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching rows for shift:", error);
+    return;
   }
-  await supabase.from("availability").delete().eq("day", 6);
+
+  for (const r of rows) {
+    if (r.day >= 1 && r.day <= 29) {
+      const { error: ue } = await supabase
+        .from("availability")
+        .update({ day: r.day - 1 })
+        .eq("id", r.id);
+      if (ue) console.error("Shift update error for id", r.id, ue);
+    }
+  }
+
+  // clear the far-right (if any)
+  await supabase.from("availability").delete().eq("day", 29);
+  console.log("✅ Shift complete for new day");
 }
 
-// 🕘 Daily check
+// === Daily check (keeps previous startDate mechanism) ===
 async function dailyShiftIfNeeded() {
   const today = new Date();
   const saved = getStartDate();
@@ -306,14 +354,58 @@ async function dailyShiftIfNeeded() {
   const savedISO = saved ? saved.toISOString().split("T")[0] : null;
   if (!saved) { setStartDate(today); return; }
   if (todayISO === savedISO) return;
+  console.log("🌅 New day detected – shifting schedule...");
   await shiftAvailabilityDates();
   setStartDate(today);
   await loadAvailability();
 }
 
-// 🚀 Initialize
+// === USER SELECT UI & flow ===
+function showUserSelect() {
+  const container = document.getElementById("user-select");
+  const btnArea = document.getElementById("user-buttons");
+  container.style.display = "block";
+  btnArea.innerHTML = "";
+  predefinedUsers.forEach(u => {
+    const btn = document.createElement("button");
+    btn.className = "user-btn";
+    btn.textContent = u.name;
+    btn.style.background = u.color;
+    btn.onclick = () => selectUser(u);
+    btnArea.appendChild(btn);
+  });
+}
+
+function selectUser(u) {
+  // Save exactly the same user object structure as before
+  user = { name: u.name, color: u.color };
+  localStorage.setItem("user", JSON.stringify(user));
+
+  // show calendar and legend
+  document.getElementById("user-select").style.display = "none";
+  document.getElementById("calendar").style.display = "block";
+  legendDiv.style.display = "block";
+
+  // build calendar from saved start date (or today)
+  buildCalendar(getStartDate());
+  loadAvailability();
+}
+
+// === Startup logic ===
 buildCalendar(getStartDate());
-dailyShiftIfNeeded().then(loadAvailability);
+
+// If user exists in localStorage -> show calendar immediately
+if (user) {
+  document.getElementById("calendar").style.display = "block";
+  legendDiv.style.display = "block";
+  // run daily shift check then load data
+  dailyShiftIfNeeded().then(loadAvailability);
+} else {
+  // no user: show the simple select screen
+  showUserSelect();
+  // still run daily shift in background (doesn't require a user)
+  dailyShiftIfNeeded();
+}
 </script>
 </body>
 </html>
