@@ -43,7 +43,7 @@
       border-collapse: collapse;
       margin: 0 auto;
       min-width: 700px;
-    
+      table-layout: fixed;
     }
     th, td {
       border: 1px solid #ccc;
@@ -187,10 +187,10 @@ let user = JSON.parse(localStorage.getItem("user") || "null");
 
 /* 4 permanent users */
 const predefinedUsers = [
-  { name: "Duce",   color: "#e74c3c" },
-  { name: "Mike",  color: "#3498db" },
-  { name: "Gway", color: "#2ecc71" },
-  { name: "Bone",   color: "#9b59b6" }
+  { name: "Duce",  color: "#0000FF" },
+  { name: "Mike",  color: "#0BDA51" },
+  { name: "Gway",  color: "#D3D3D3" },
+  { name: "Bone",  color: "#FFEF00" }
 ];
 
 /* === Date tracking === */
@@ -219,7 +219,7 @@ function buildCalendar(startDate) {
     th.className = "day-header";
     th.innerHTML =
       `${d.toLocaleDateString("en-US", { weekday: "short" })}<br>` +
-      `<span class="monthday">${d.getDate()}/${d.getMonth()+1}</span>`;
+      `<span class="monthday">${d.getDate()}/${d.getMonth() + 1}</span>`;
 
     headerRow.appendChild(th);
   }
@@ -227,8 +227,7 @@ function buildCalendar(startDate) {
   table.appendChild(headerRow);
 
   /* time rows */
-  const times = ["Morning","Pre-Lunch","Post-Lunch","Dinner","Late-Evening"];
-
+  const times = ["Morning", "Pre-Lunch", "Post-Lunch", "Dinner", "Late-Evening"];
   times.forEach(time => {
     const row = document.createElement("tr");
 
@@ -252,6 +251,7 @@ function buildCalendar(startDate) {
 /* === Toggle (insert/remove Supabase row) === */
 async function toggleAvailability(cell) {
   if (!user) return;
+
   const day = parseInt(cell.dataset.day, 10);
   const time = cell.dataset.time;
 
@@ -281,8 +281,6 @@ async function loadAvailability() {
   cells.forEach(cell => {
     cell.innerHTML = "";
     cell.classList.remove("gold-cell");
-    cell.style.background = "";
-    cell.style.boxShadow = "none";
   });
 
   if (!data) return;
@@ -290,6 +288,7 @@ async function loadAvailability() {
   /* Legend */
   const users = {};
   data.forEach(r => { users[r.name] = r.color; });
+
   legendList.innerHTML = "";
   Object.entries(users).forEach(([name, color]) => {
     const div = document.createElement("div");
@@ -346,7 +345,8 @@ async function shiftAvailabilityDates() {
 
   for (const r of rows) {
     if (r.day >= 1 && r.day <= 29) {
-      await supabase.from("availability")
+      await supabase
+        .from("availability")
         .update({ day: r.day - 1 })
         .eq("id", r.id);
     }
@@ -358,6 +358,7 @@ async function shiftAvailabilityDates() {
 async function dailyShiftIfNeeded() {
   const today = new Date();
   const saved = getStartDate();
+
   const tISO = today.toISOString().split("T")[0];
   const sISO = saved ? saved.toISOString().split("T")[0] : null;
 
