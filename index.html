@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Availability Calendar</title>
   <style>
     body {
@@ -19,11 +19,11 @@
       margin: 20px auto;
     }
     #user-buttons {
-      display:flex;
-      justify-content:center;
-      gap:20px;
-      flex-wrap:wrap;
-      margin-top:12px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 12px;
     }
     .user-btn {
       color: #fff;
@@ -49,7 +49,7 @@
       border: 1px solid #ccc;
       width: 70px;
       min-width: 70px;
-      max-width:70px;
+      max-width: 70px;
       height: 50px;
       text-align: center;
       vertical-align: middle;
@@ -62,14 +62,12 @@
       top: 0;
     }
     .day-header { font-weight: bold; }
-
     .monthday {
       font-size: 13px;
       color: #555;
       margin-top: -34px;
       display: block;
     }
-
     .time-label {
       font-weight: bold;
       width: 120px;
@@ -119,11 +117,11 @@
 
     /* dot container */
     .dot-container {
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      gap:6px;
-      width:100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
     }
     .dot {
       width: 16px;
@@ -155,12 +153,12 @@
   <table id="availabilityTable"></table>
 </div>
 
-<!-- footer (now correctly OUTSIDE the table) -->
+<!-- footer (outside the table) -->
 <div class="footer-text">
   - Morning denotes availability starting quite early, assumedly before 10am. <br>
   - Pre-Lunch means you'd be around for lunch, probably starting something like 11-12am. <br>
   - Post-Lunch you're looking at something around 1-3pm, up until around dinner time. <br>
-  - Dinner I'd say falls around the 5pm+ region, ending around 9pm <br>
+  - Dinner I'd say falls around the 5pm+ region, ending around 9pm. <br>
   - Late-Evening we're talking about you around after our earlier 9pm finishes until late, like 11+ or so.
 </div>
 
@@ -172,7 +170,7 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-/* Supabase credentials */
+/* Supabase credentials (unchanged) */
 const SUPABASE_URL = "https://btuuowyvemesakjzkkzv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0dXVvd3l2ZW1lc2Franpra3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0ODIwMDEsImV4cCI6MjA3NzA1ODAwMX0.QsDXg8AigiKUnpBUomprfbhx3RHzu-m12s2t4SKrhgM";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -345,8 +343,7 @@ async function shiftAvailabilityDates() {
 
   for (const r of rows) {
     if (r.day >= 1 && r.day <= 29) {
-      await supabase
-        .from("availability")
+      await supabase.from("availability")
         .update({ day: r.day - 1 })
         .eq("id", r.id);
     }
