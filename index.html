@@ -406,6 +406,7 @@ buildCalendar(getStartDate());
 if (user) {
   document.getElementById("calendar").style.display = "block";
   legendDiv.style.display = "block";
+  document.getElementById("user-select").style.display = "none";
   document.querySelector(".footer-text").style.display = "block";
   dailyShiftIfNeeded().then(loadAvailability);
 } else {
