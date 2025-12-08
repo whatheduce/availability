@@ -323,7 +323,13 @@ async function loadAvailability() {
       const dotContainer = document.createElement("div");
       dotContainer.className = "dot-container";
 
-      entries.forEach(entry => {
+      const order = ["Duce", "Mike", "Gway", "Bone"];
+
+      const sorted = entries.slice().sort((a, b) => {
+        return order.indexOf(a.name) - order.indexOf(b.name);
+      });
+
+      sorted.forEach(entry => {
         const dot = document.createElement("div");
         dot.className = "dot";
         dot.style.background = entry.color;
