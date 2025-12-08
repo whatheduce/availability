@@ -327,7 +327,7 @@ async function loadAvailability() {
         return a.color.localCompare(b.color);
       });
 
-      entries.forEach(entry => {
+      sorted.forEach(entry => {
         const dot = document.createElement("div");
         dot.className = "dot";
         dot.style.background = entry.color;
