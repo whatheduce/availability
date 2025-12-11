@@ -131,6 +131,13 @@
       width: 100%;
     }
 
+    .gold-header {
+      background: linear-gradient(135deg, gold, #ffef9f) !important;
+      color: #6a5200 !important;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+      font-weight: 700;
+    }
+
     td:hover {
       outline: 1px solid rgba(255, 215, 0, 0.3);
       cursor: pointer;
@@ -331,6 +338,8 @@ async function loadAvailability() {
     map[key].push(entry);
   });
 
+  const goldDays = new Set();
+
   /* Render cells */
   document.querySelectorAll("td[data-day]").forEach(cell => {
     const day = cell.dataset.day;
@@ -340,6 +349,9 @@ async function loadAvailability() {
 
     if (entries.length === 4) {
       cell.classList.add("gold-cell");
+      
+      goldDays.add(parseInt(day, 10));
+
       return;
     }
 
@@ -363,6 +375,14 @@ async function loadAvailability() {
 
       cell.appendChild(dotContainer);
     }
+    const headerCells = table.querySelectorAll("th.day-header");
+
+    headerCells.forEach((th, index) => {
+      if (goldDays.has(index)) {
+        th.classList.add("gold-header");
+      } else {
+        th.classList.remove("gold-header");
+      }
   });
 }
 
