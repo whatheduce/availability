@@ -375,7 +375,8 @@ async function loadAvailability() {
 
       cell.appendChild(dotContainer);
     }
-    const headerCells = table.querySelectorAll("th.day-header");
+  });
+      const headerCells = table.querySelectorAll("th.day-header");
 
     headerCells.forEach((th, index) => {
       if (goldDays.has(index)) {
@@ -383,9 +384,9 @@ async function loadAvailability() {
       } else {
         th.classList.remove("gold-header");
       }
-  });
+    });    
 }
-}
+
 
 /* === Daily shift === */
 async function shiftAvailabilityDates() {
